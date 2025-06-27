@@ -1,9 +1,9 @@
 import pandas as pd
 import nltk
 import re as r
-# from sklearn.model_selection import train_test_split
-# from sklearn.feature_extraction.text import CountVectorizer
-# from sklearn.feature_extraction.text import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LogisticRegression
 from bert_model import tokenizer
 
 nltk.download('punkt')
@@ -15,6 +15,7 @@ COLUMNS = ["Titre", "Description", "Catégorie"]
 
 # only read title and description columns
 df = pd.read_csv(FILEPATH, usecols=COLUMNS, encoding = 'utf8')
+#print(type(df['Catégorie'].values))
 
 
 # cleaning function for each entry
@@ -25,22 +26,37 @@ def clean_text(text):
     return str(text).replace('\n', ' ').strip()
 
 print(len(df))
-df_list = []
-for title, description, cat in zip(df['Titre'], df['Description'], df['Catégorie']):
-    
+df_list = list()
+categories = list()
+for title, description, category in zip(df['Titre'], df['Description'], df['Catégorie']):
+
     # clean and tokenize each entry
     entry = str(title) + " " + str(description)
     entry = clean_text(entry)
     entry = tokenizer.tokenize(entry)
 
     # clean and tokenize category
-    cat = clean_text(str(cat))
+    cat = clean_text(str(category))
     cat = tokenizer.tokenize(cat)
 
     # append to list
-    df_list.append([entry, cat])
-# convert to list of title + description strings
-
-print (df_list)
+    df_list.append(entry)
+    categories.append(cat)
 
 
+
+x_train, x_test, y_train, y_test = train_test_split(df_list, categories, test_size=0.2)
+
+
+vectorizer = CountVectorizer()
+vectorizer.fit(x_train)
+
+X_train = vectorizer.transform(x_train)
+X_test = vectorizer.transform(x_test)
+X_train
+
+classifier = LogisticRegression()
+classifier.fit(X_train, y_train)
+score = classifier.score(X_test, y_test)
+
+print(f"Model accuracy: {score * 100:.2f}%")
