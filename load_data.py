@@ -5,7 +5,8 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
-from bert_model import tokenizer
+from nltk_tokenizer import tokenizer
+from balancer import balance
 
 
 nltk.download('punkt')
@@ -36,52 +37,45 @@ for title, description, category in zip(df['Titre'], df['Description'], df['Cat√
     # clean and tokenize each entry
     entry = str(title) + " " + str(description)
     entry = clean_text(entry)
-    entry = tokenizer.tokenize(entry)
+    entry = tokenizer(entry)
 
     # clean and tokenize category
     cat = clean_text(str(category))
-    cat = tokenizer.tokenize(cat)
+    cat = tokenizer(cat)
 
     # append to list
-
     df_list.append(entry)
     categories.append(cat)
-    # if not count:
-    #     df_list = np.array([np.array(entry)])
-    #     categories = np.array([np.array(cat)])
-    # else:
-    #     df_list = np.concatenate((df_list, np.array(entry)), )
-    #     categories = np.concatenate((categories, np.array(cat)))
         
     count += 1
 
     if count % 1000 == 0:
         print(f"Processed {count} entries...")
-    
 
 
-print(df_list)
-print(categories)
-print(len(df_list), len(categories))
-df_list = np.array(df_list)
-categories = np.array(categories)
-print(type(df_list))
-print(type(df_list[1]))
+df_list, categories = balance(df_list, categories)
+
+x_train, x_test, y_train, y_test = train_test_split(df_list, categories, test_size=0.2, random_state = 1000)
+
+# print(type(x_train), type(y_train))
+# print(type(x_test), type(y_test))
+
+vectorizer = CountVectorizer()
+vectorizer.fit(x_train)
+
+X_train = vectorizer.transform(x_train)
+X_test = vectorizer.transform(x_test)
+
+classifier = LogisticRegression(max_iter = 12000)
+classifier.fit(X_train, y_train)
+score = classifier.score(X_test, y_test)
+
+print(f"Model accuracy: {score * 100:.2f}%")
 
 
+def predict(text):
+    text = tokenizer(text)
+    return classifier.predict(vectorizer.transform([text]))
 
-# x_train, x_test, y_train, y_test = train_test_split(df_lis[], categories, test_size=0.2)
-
-
-# vectorizer = CountVectorizer()
-# vectorizer.fit(x_train)
-
-# X_train = vectorizer.transform(x_train)
-# X_test = vectorizer.transform(x_test)
-# X_train
-
-# classifier = LogisticRegression()
-# classifier.fit(X_train, y_train)
-# score = classifier.score(X_test, y_test)
-
-# print(f"Model accuracy: {score * 100:.2f}%")
+while True:
+    print(predict(input("ENTER PROBLEM")))
